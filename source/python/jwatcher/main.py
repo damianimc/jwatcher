@@ -5,12 +5,13 @@ import subprocess
 import os.path
 
 
-ENVIRON_KEYWORD = 'JENKINS_'
+ENVIRON_KEYWORD = 'JENKINS'
 
 def copy_env_key(key):
     return key.startswith('BUILD_') or \
         key.startswith('JOB_') or \
         key.startswith('NODE_') or \
+        key.startswith('WORKSPACE') or \
         key.startswith(ENVIRON_KEYWORD)
 
 app = Flask(__name__)
@@ -35,6 +36,8 @@ def get_processes(process_name):
                         process_dict['io_counters'] = str(process_dict['io_counters'])
                         process_dict['cpu_times'] = str(process_dict['cpu_times'])
                         process_dict['memory_info'] = str(process_dict['memory_info'])
+                        if 'WORKSPACE' in env_keys:
+                            process_dict['WORKSPACE'] = str(env_keys['WORKSPACE'])
                         
                         proc_environ = {}
                         for key in env_keys:
@@ -66,6 +69,7 @@ def python_process_dump():
             dump_filename = os.path.join(info['WORKSPACE'], name)
         else:
             dump_filename = name
+            
         data['procdump'] = subprocess.call(['procdump', '-mm', str(info['pid']), '-o', dump_filename])
         result[name] = data
         
