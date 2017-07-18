@@ -4,20 +4,23 @@ from datetime import datetime
 import subprocess
 import os.path
 
+ENVIRON_KEYWORD = 'JENKINS'
+
 app = Flask(__name__)
 
 def get_processes(process_name):
     import psutil
 
+    jenkins_variables = {}
     result = {}
     for process in psutil.process_iter():
         try:
-            env_keys = process.environ().keys()
+            env_keys = process.environ()
         except psutil.AccessDenied:
             pass
         else:
             for key in env_keys:
-                if key.startswith('JENKINS_HOME'):
+                if key.startswith(ENVIRON_KEYWORD):
                     if process_name is None or process_name in process.name():
                         process_dict = process.as_dict(attrs=['pid', 'username', 'cpu_times', 'cmdline', 'create_time', 'cwd', 'status', 'io_counters', 'memory_info'])
                         process_dict['create_time'] = datetime.fromtimestamp(process_dict['create_time'])
@@ -25,13 +28,19 @@ def get_processes(process_name):
                         process_dict['cpu_times'] = str(process_dict['cpu_times'])
                         process_dict['memory_info'] = str(process_dict['memory_info'])
                         result[process.name()] = process_dict
+                        
+                        for key in env_keys:
+                            if key.startswith(ENVIRON_KEYWORD) and key not in jenkins_variables:
+                                jenkins_variables[key] = env_keys[key]
+                        
+                        break
                     
-    return result
+    return jenkins_variables, result
 
 
 @app.route('/python_dump')
 def python_process_dump():
-    processes = get_processes('python')
+    jenkins_variables, processes = get_processes('python')
     result = {}
     for name, info in processes.items():
         data = {}
