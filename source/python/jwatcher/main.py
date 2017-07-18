@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from datetime import datetime
 import subprocess
 import os.path
-from distutils.command.config import dump_file
+
 
 ENVIRON_KEYWORD = 'JENKINS_'
 
@@ -20,6 +20,7 @@ def get_processes(process_name):
 
     jenkins_variables = {}
     result = {}
+    configuration_mismatch_processes = []
     for process in psutil.process_iter():
         try:
             env_keys = process.environ()
@@ -40,6 +41,8 @@ def get_processes(process_name):
                             if copy_env_key(key):
                                 if key not in jenkins_variables:
                                     jenkins_variables[key] = env_keys[key]
+                                elif jenkins_variables[key] != env_keys[key]:
+                                    configuration_mismatch_processes.append('%s(%d)' % (process.name(), process.pid))
                                 if key not in proc_environ:
                                     proc_environ[key] = env_keys[key]
                         
@@ -47,26 +50,34 @@ def get_processes(process_name):
                         result['%s(%d)' % (process.name(), process.pid)] = process_dict
                         break
                     
-    return jenkins_variables, result
+    return { 'process with different environ' : configuration_mismatch_processes }, \
+           { 'process environ' : jenkins_variables }, \
+           result
 
 
 @app.route('/python_dump')
 def python_process_dump():
-    jenkins_variables, processes = get_processes('python')
+    _, jenkins_variables, processes = get_processes('python')
     result = {}
     dump_files = []
     for name, info in processes.items():
         data = {}
-        dump_filename = name
+        if 'WORKSPACE' in info:
+            dump_filename = os.path.join(info['WORKSPACE'], name)
+        else:
+            dump_filename = name
         data['procdump'] = subprocess.call(['procdump', '-mm', str(info['pid']), '-o', dump_filename])
         result[name] = data
         
         dump_filename += '.dmp'
         if os.path.exists(dump_filename):
+            data['dump_filename'] = dump_filename
             dump_files.append((name, dump_filename))
+        else:
+            data['dump_filename'] = None
 
-    for name, dump_file in dump_files:
-        print('Generating DUMP:', name, dump_file)
+    for name, dump_filename in dump_files:
+        print('Generating DUMP:', name, dump_filename)
         data = result[name]
         assert os.path.exists(r"C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe")
         try:
@@ -77,7 +88,6 @@ def python_process_dump():
             ).decode('utf-8').split('\n')
         except subprocess.CalledProcessError as e:
             data['stack_trace'] = e.output.decode('utf-8')
-        
         
     return jsonify(result)
 
