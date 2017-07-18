@@ -4,7 +4,7 @@ from datetime import datetime
 import subprocess
 import os.path
 
-ENVIRON_KEYWORD = 'WW'
+ENVIRON_KEYWORD = 'JENKINS_'
 
 def copy_env_key(key):
     return key.startswith('BUILD_') or \
