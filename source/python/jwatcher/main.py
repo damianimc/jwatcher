@@ -17,7 +17,7 @@ def get_processes(process_name):
             pass
         else:
             for key in env_keys:
-                if key.startswith('WW'):
+                if key.startswith('JENKINS_HOME'):
                     if process_name is None or process_name in process.name():
                         process_dict = process.as_dict(attrs=['pid', 'username', 'cpu_times', 'cmdline', 'create_time', 'cwd', 'status', 'io_counters', 'memory_info'])
                         process_dict['create_time'] = datetime.fromtimestamp(process_dict['create_time'])
