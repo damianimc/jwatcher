@@ -1,0 +1,14 @@
+name: jwatcher
+
+#includes:
+  #- {{ root }}/../eden/environment.devenv.yml
+
+dependencies:
+  - flask
+  - invoke
+  - psutil
+  - python=3 
+
+environment:
+  PYTHONPATH:
+    - {{ root }}/source/python
