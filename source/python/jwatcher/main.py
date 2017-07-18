@@ -4,7 +4,7 @@ from datetime import datetime
 import subprocess
 import os.path
 
-ENVIRON_KEYWORD = 'JENKINS'
+ENVIRON_KEYWORD = 'WW'
 
 def copy_env_key(key):
     return key.startswith('BUILD_') or \
@@ -33,7 +33,7 @@ def get_processes(process_name):
                         process_dict['io_counters'] = str(process_dict['io_counters'])
                         process_dict['cpu_times'] = str(process_dict['cpu_times'])
                         process_dict['memory_info'] = str(process_dict['memory_info'])
-                        result[process.name()] = process_dict
+                        result['%s(%d)' % (process.name(), process.pid)] = process_dict
                         
                         for key in env_keys:
                             if copy_env_key(key) and key not in jenkins_variables:
