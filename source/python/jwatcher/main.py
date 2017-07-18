@@ -6,6 +6,12 @@ import os.path
 
 ENVIRON_KEYWORD = 'JENKINS'
 
+def copy_env_key(key):
+    return key.startswith('BUILD_') or \
+        key.startswith('JOB_') or \
+        key.startswith('NODE_') or \
+        key.startswith(ENVIRON_KEYWORD)
+
 app = Flask(__name__)
 
 def get_processes(process_name):
@@ -30,7 +36,7 @@ def get_processes(process_name):
                         result[process.name()] = process_dict
                         
                         for key in env_keys:
-                            if key.startswith(ENVIRON_KEYWORD) and key not in jenkins_variables:
+                            if copy_env_key(key) and key not in jenkins_variables:
                                 jenkins_variables[key] = env_keys[key]
                         
                         break
